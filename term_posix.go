@@ -3,6 +3,7 @@
 package term
 
 import (
+	"errors"
 	"syscall"
 	"time"
 
@@ -141,6 +142,34 @@ func (t *Term) setFlowControl(kind int) error {
 	case HARDWARE:
 		a.Iflag &^= termios.IXON | termios.IXOFF | termios.IXANY
 		a.Cflag |= termios.CRTSCTS
+	}
+	return termios.Tcsetattr(uintptr(t.fd), termios.TCSANOW, (*syscall.Termios)(&a))
+}
+
+// StopBits sets the number of stop bits.
+func StopBits(n int) func(*Term) error {
+	return func(t *Term) error {
+		return t.setStopBits(n)
+	}
+}
+
+// SetStopBits sets the number of stop bits.
+func (t *Term) SetStopBits(n int) error {
+	return t.SetOption(StopBits(n))
+}
+
+func (t *Term) setStopBits(n int) error {
+	var a attr
+	if err := termios.Tcgetattr(uintptr(t.fd), (*syscall.Termios)(&a)); err != nil {
+		return err
+	}
+	switch n {
+	case 1:
+		a.Cflag &^= syscall.CSTOPB
+	case 2:
+		a.Cflag |= syscall.CSTOPB
+	default:
+		return errors.New("unsupported value for stop bits")
 	}
 	return termios.Tcsetattr(uintptr(t.fd), termios.TCSANOW, (*syscall.Termios)(&a))
 }
