@@ -252,3 +252,8 @@ func (t *Term) Close() error {
 	t.fd = -1
 	return err
 }
+
+// Drain waits until all output has been transmitted.
+func (t *Term) Drain() error {
+	return termios.Tcdrain(uintptr(t.fd))
+}
